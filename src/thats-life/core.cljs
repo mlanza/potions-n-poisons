@@ -28,7 +28,7 @@
 (defn starting-pawns [player-count]
   (nth [3 3 2 2] (- player-count 2)))
 
-(defn join [name state]
+(defn join [state name]
   (update state :players #(conj % name)))
 
 (defn moved [state]
@@ -48,9 +48,15 @@
 (defn over? [state]
   (empty? (in-play state)))
 
+(defn up [state]
+  (get state :up))
+
 (defn remove-once [pred xs]
   (let [[ys zs] (split-with (complement pred) xs)]
     (vec (concat ys (rest zs)))))
+
+(defn unconj [xs x]
+  (remove-once (partial = x) xs))
 
 (defn start [state]
   (let [player-count (count (get state :players))]
@@ -62,21 +68,74 @@
       (assoc :up (rand-int player-count))
       (assoc :die (roll)))))
 
-(defn end-turn [state]
+(defn next-up [state]
   (let [player  (get state :up)
         players (playing state)]
-    (assoc state :up
-      (when (not (over? state))
-        (second (drop-while #(not= player %) (cycle players)))))))
+    (-> state
+      (assoc :up
+        (when (not (over? state))
+          (second (drop-while #(not= player %) (cycle players)))))
+      (assoc :die (roll)))))
+
+(defn has? [x xs]
+  (some #{x} xs))
+
+(defn collect [state from]
+  (let [player (up state)]
+    (if (empty? (get-in state [:pawns from]))
+      (-> state
+        (update-in [:collected player] #(conj % (nth (get state :trail) from)))
+        (update :trail
+          (fn [trail]
+            (let [[xs ys] (split-at from trail)]
+              (vec (concat xs (rest ys)))))))
+      state)))
 
 (defn embark [state]
-  (let [player (get state :up)]
+  (let [player (up state)]
     (if ((set (unmoved state)) player)
       (-> state
-        (update :start #(remove-once (fn [x] (= player x)) %))
+        (update :start #(unconj (fn [x] (= player x)) %))
         (update-in [:pawns (- (get state :die) 1)] #(conj % player))
-        end-turn)
+        next-up)
       state)))
+
+(defn continue [state from pawn]
+  (let [player (up state)
+        pawns  (get-in state [:pawns from])
+        to     (+ from (get state :die))
+        exited (> to (- (count (get state :trail)) 1))
+        take   #(unconj % pawn)
+        put    (if exited identity #(conj % pawn))]
+    (if (and (has? player pawns) (or (= player pawn) (guard? pawn)))
+      (-> state
+        (update-in [:pawns from] take)
+        (update-in [:pawns to  ] put)
+        (collect from)
+        next-up)
+      state)))
+
+(defn moves
+  ([state pawn]
+    (filter #(= pawn (second %)) (moves state)))
+  ([state]
+    (let [player (up state)]
+      (distinct
+        (apply concat
+          (map-indexed
+            (fn [idx pawns]
+              (map
+                #(vector idx %)
+                (filter
+                  (fn [pawn]
+                    (and (has? player pawns) (or (= player pawn) (guard? pawn))))
+                  pawns)))
+            (get state :pawns)))))))
+
+(defn move [state from pawn]
+  (if (= -1 from)
+    (embark state)
+    (continue state from pawn)))
 
 (defonce game
   (atom init))
