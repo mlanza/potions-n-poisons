@@ -70,48 +70,75 @@
 
 (defn next-up [state]
   (let [player  (get state :up)
-        players (playing state)]
-    (-> state
-      (assoc :up
-        (when (not (over? state))
-          (second (drop-while #(not= player %) (cycle players)))))
-      (assoc :die (roll)))))
+        players (set (playing state))
+        turns   (take 6 (filter players (cycle (range (count (get state :players))))))]
+    (if (over? state)
+      (-> state
+        (dissoc :up)
+        (dissoc :die))
+      (-> state
+        (assoc :up (second (concat (drop-while #(not= player %) turns) turns)))
+        (assoc :die (roll))))))
 
 (defn has? [x xs]
   (some #{x} xs))
+
+(defn drop-at [pos xs]
+  (let [[ys zs] (split-at pos xs)]
+    (vec (concat ys (rest zs)))))
 
 (defn collect [state from]
   (let [player (up state)]
     (if (empty? (get-in state [:pawns from]))
       (-> state
         (update-in [:collected player] #(conj % (nth (get state :trail) from)))
-        (update :trail
-          (fn [trail]
-            (let [[xs ys] (split-at from trail)]
-              (vec (concat xs (rest ys)))))))
+        (update :trail #(drop-at from %))
+        (update :pawns #(drop-at from %)))
       state)))
+
+(defn trim [state]
+  (if (empty? (get state :start))
+    (let [n (count (take-while empty? (map #(remove guard? %) (get state :pawns))))]
+      (-> state
+        (update :trail #(vec (drop n %)))
+        (update :pawns #(vec (drop n %)))))
+    state))
 
 (defn embark [state]
   (let [player (up state)]
     (if ((set (unmoved state)) player)
       (-> state
-        (update :start #(unconj (fn [x] (= player x)) %))
+        (update :start #(unconj % player))
         (update-in [:pawns (- (get state :die) 1)] #(conj % player))
+        trim
         next-up)
       state)))
+
+(defn take-pawn [state from pawn]
+  (update-in state [:pawns from] #(unconj % pawn)))
+
+(defn exited? [state to]
+  (not (contains? (get state :trail) to)))
+
+(defn put-pawn [state to pawn]
+  (if (exited? state to)
+    state
+    (update-in state [:pawns to] #(conj % pawn))))
+
+(defn move-pawn [state from to pawn]
+  (-> state
+    (take-pawn from pawn)
+    (put-pawn to pawn)))
 
 (defn continue [state from pawn]
   (let [player (up state)
         pawns  (get-in state [:pawns from])
-        to     (+ from (get state :die))
-        exited (> to (- (count (get state :trail)) 1))
-        take   #(unconj % pawn)
-        put    (if exited identity #(conj % pawn))]
+        to     (+ from (get state :die))]
     (if (and (has? player pawns) (or (= player pawn) (guard? pawn)))
       (-> state
-        (update-in [:pawns from] take)
-        (update-in [:pawns to  ] put)
+        (move-pawn from to pawn)
         (collect from)
+        trim
         next-up)
       state)))
 
@@ -121,21 +148,37 @@
   ([state]
     (let [player (up state)]
       (distinct
-        (apply concat
-          (map-indexed
-            (fn [idx pawns]
-              (map
-                #(vector idx %)
-                (filter
-                  (fn [pawn]
-                    (and (has? player pawns) (or (= player pawn) (guard? pawn))))
-                  pawns)))
-            (get state :pawns)))))))
+        (concat
+          (->>
+            (get state :start)
+            (filter (partial = player))
+            (map (partial vector -1)))
+          (->>
+            (get state :pawns)
+            (map-indexed
+              (fn [idx pawns]
+                (map
+                  #(vector idx %)
+                  (filter
+                    (fn [pawn]
+                      (and (has? player pawns) (or (= player pawn) (guard? pawn))))
+                    pawns))))
+            (apply concat)))))))
 
 (defn move [state from pawn]
   (if (= -1 from)
     (embark state)
     (continue state from pawn)))
 
+(defn rand-move [state]
+  (let [choices (vec (moves state))
+        pick    (rand-int (count choices))]
+  (if (over? state)
+    state
+    (apply move state (nth choices pick)))))
+
+(defn valid? [state]
+  (contains? state :players))
+
 (defonce game
-  (atom init))
+  (atom init :validator valid?))
