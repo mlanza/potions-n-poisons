@@ -13,7 +13,7 @@
 (def guard -1)
 (def guard? (partial = guard))
 
-(defn spots [trail]
+(defn setup-pawns [trail]
   (mapv
     #(vec (remove nil? (conj %1 %2)))
     (repeat (count trail) nil)
@@ -45,6 +45,9 @@
 (defn playing [state]
   (-> state in-play distinct sort))
 
+(defn started? [state]
+  (contains? state :start))
+
 (defn over? [state]
   (empty? (in-play state)))
 
@@ -53,20 +56,40 @@
 
 (defn remove-once [pred xs]
   (let [[ys zs] (split-with (complement pred) xs)]
-    (vec (concat ys (rest zs)))))
+    (concat ys (rest zs))))
 
 (defn unconj [xs x]
-  (remove-once (partial = x) xs))
+  (vec (remove-once (partial = x) xs)))
 
 (defn start [state]
   (let [player-count (count (get state :players))]
     (-> state
       (assoc :start (vec (mapcat #(repeat (starting-pawns player-count) %) (range player-count))))
       (assoc :trail init-trail)
-      (assoc :pawns (spots init-trail))
+      (assoc :pawns (setup-pawns init-trail))
       (assoc :collected (vec (repeat player-count [])))
       (assoc :up (rand-int player-count))
       (assoc :die (roll)))))
+
+(defn score [collected]
+  (let [pos   (filter pos?  collected)
+        neg   (filter neg?  collected)
+        lucky (filter zero? collected)]
+    (reduce + 0
+      (concat pos
+        (map *
+          (sort (filter neg? collected))
+          (concat (repeat (count lucky) -1) (repeat 1)))))))
+
+(defn scores [state]
+  (mapv score (get state :collected)))
+
+(defn standings [state]
+  (->>
+    (map vector (scores state) (get state :players))
+    (sort-by first)
+    reverse
+    vec))
 
 (defn next-up [state]
   (let [player  (get state :up)
@@ -74,8 +97,8 @@
         turns   (take 6 (filter players (cycle (range (count (get state :players))))))]
     (if (over? state)
       (-> state
-        (dissoc :up)
-        (dissoc :die))
+        (assoc :standings (standings state))
+        (dissoc :up :die))
       (-> state
         (assoc :up (second (concat (drop-while #(not= player %) turns) turns)))
         (assoc :die (roll))))))
@@ -176,6 +199,14 @@
   (if (over? state)
     state
     (apply move state (nth choices pick)))))
+
+(defn play [state choose times] ; make n choices progressing the game state forward
+  (reduce choose state (range times)))
+
+(defn sample [choose times & players] ; run a sample game using some move choice algorithm
+  (-> {:players (vec players)}
+    start
+    (play choose times)))
 
 (defn valid? [state]
   (contains? state :players))
