@@ -1,4 +1,5 @@
-(ns thats-life.core)
+(ns thats-life.core
+  (:require [reagent.core :as reagent]))
 
 (def roll
   #(inc (rand-int 6)))
@@ -212,4 +213,27 @@
   (contains? state :players))
 
 (defonce game
-  (atom init :validator valid?))
+  (reagent/atom init :validator valid?))
+
+(defn render-players []
+  (apply vector :div
+    (map (partial vector :div) (get @game :players))))
+
+(defn src [n]
+  (cond
+    (pos? n) "images/potion.svg"
+    (neg? n) "images/poison.svg"
+    (zero? n) "images/tome.svg"))
+
+(defn card [n]
+  [:img {:src (src n)}])
+
+(defn render-trail []
+  (apply vector :div.trail
+    [:img {:src "images/start.svg"}]
+    (concat
+      (map (partial vector card) (get @game :trail))
+      [[:img {:src "images/stop.svg"}]])))
+
+  (reagent/render [render-trail]
+    (js/document.getElementById "game"))

@@ -1,3 +1,4 @@
 out
 target
 figwheel*.log
+.DS_Store

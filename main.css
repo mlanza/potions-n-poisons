@@ -1,0 +1,13 @@
+body {
+  background-color: #DDD;
+  width: 262em;
+}
+img {
+  height: 5em;
+  float: left;
+  margin: 15em .4em .4em .4em;
+}
+img.pawn {
+  height: 2em;
+  display: none;
+}
