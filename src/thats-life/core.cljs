@@ -65,7 +65,6 @@
 (defn unconj [xs x]
   (vec (remove-once (partial = x) xs)))
 
-
 (defn start [state]
   (let [player-count (count (get state :players))]
     (-> state
@@ -226,10 +225,6 @@
 (defonce game
   (reagent/atom init :validator valid?))
 
-(defn render-players []
-  (apply vector :div
-    (map (partial vector :div) (get @game :players))))
-
 (defn card-kind [n]
   (cond
     (pos? n) "potion"
@@ -239,17 +234,32 @@
 (defn render-pawn [n]
   (let [src (get ["guard", "pawn-red", "pawn-blue"]
               (inc n))]
-    [:li [:img.pawn {:src (str "images/" (or src n) ".svg")}]]))
+    [:img.pawn {:src (str "images/" (or src n) ".svg")}]))
 
-(defn render-pawns [pawns]
-  [:ol.pawns (map render-pawn pawns)])
+(defn render-pawns [pawns up from]
+  (let [move-guards (get (set pawns) up)]
+    [:ol (map
+      (fn [n]
+        (let [mobile (or (= n up) (and move-guards (guard? n)))]
+          [(symbol (str "li" (when mobile ".mobile")))
+          (when mobile {:on-click
+            (fn [e]
+              (println e "move" from n)
+              (swap! game #(move % from n))
+              )})
+          [render-pawn n]]))
+      pawns)]))
 
-(defn render-space [what key worth pawns]
-  [(symbol (str "div" "." what "." (or (card-kind worth) what))) ^{:key key}
-    {:data-key key :data-worth worth}
-    [render-pawns pawns]
+(defn render-card [worth what]
+  [(symbol (str "div.card." (or (card-kind worth) what)))
     [:img.kind {:src (str "images/" (or (card-kind worth) what) ".svg")}]
     [:div.worth (or worth "-")]])
+
+(defn render-space [what idx key worth pawns up]
+  [(symbol (str "div.space." what)) ^{:key key}
+    {:data-key key :data-worth worth}
+    [:div.pawns [render-pawns pawns up idx]]
+    [render-card worth what]])
 
 (def started
   (-> init
@@ -261,20 +271,38 @@
 (defn render-die [pips]
   (when pips [:img.roll {:src (str "images/die" pips ".svg")}]))
 
+(defn render-players [players up die collected]
+  [:table.players>tbody
+    (map-indexed
+      (fn [idx name]
+        [:tr
+          [:td.name name ]
+          [:td.pawn (render-pawn idx)]
+          [:td.die (when (= idx up) (render-die die)) ]
+          [:td.score (score (get collected idx))]
+          [:td.collected (map render-card (get collected idx)) ]
+          ]) players) ])
+
 (defn render-game []
   (let [state @game]
-    [:div [render-die (get state :die)]
+    [:div
     (apply vector :div.trail
-      [render-space "start" "start" nil (get state :start)]
+      [render-space "start" -1 -1 nil (get state :start) (get state :up)]
       (concat
         (map-indexed
           (fn [idx]
             (vector render-space "card"
+              idx
               (get-in state [:ids idx])
               (get-in state [:trail idx])
-              (get-in state [:pawns idx])))
+              (get-in state [:pawns idx])
+              (get state :up)))
           (get state :trail))
-        [[render-space "stop" "stop"]]))]))
+        [[render-space "stop" 99 "stop"]]))
+    [:div.summary
+      [render-players (get state :players) (get state :up) (get state :die) (get state :collected) ]]
+
+    ]))
 
 (reagent/render [render-game]
   (js/document.getElementById "game"))

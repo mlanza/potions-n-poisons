@@ -1,41 +1,46 @@
 body {
   background-color: #DDD;
 }
+#game {
+  font-family: monospace;
+}
 img.roll {
   height: 2em;
-  position: fixed;
-  top: 5px;
-  right: 5px;
 }
 div.trail {
   white-space: nowrap;
   font-size: 10px;
+  text-align: center;
 }
-div.card,
-div.start,
-div.stop {
+div.space {
   display: inline-block;
   margin: 0;
   padding: .3em;
 }
-div.card:hover,
-div.start:hover,
-div.stop:hover {
-  background-color: #AAA;
+div.space:hover .pawns img.pawn {
+  opacity: .2;
 }
-ol.pawns {
+div.space:hover .pawns .mobile img.pawn {
+  opacity: 1;
+  cursor: pointer;
+}
+.pawns {
+  position: relative;
+  height: 18em;
+}
+.pawns ol {
+  position: absolute;
+  bottom: 0;
   list-style: none;
   padding: 0;
-  height: 15em;
   margin: 0;
-}
-ol.pawns > li {
-  float: left;
-  text-align: center;
+  display: block;
   width: 100%;
-  clear: both;
 }
-ol.pawns > li img {
+.pawns ol > li {
+  text-align: center;
+}
+.pawns ol > li img {
   height: 2em;
 }
 img.kind {
@@ -47,7 +52,6 @@ img.kind {
   font-size: 1.2em;
   font-weight: bold;
   text-align: center;
-  font-family: monospace;
 }
 .poison .worth {
   color: red;
@@ -56,4 +60,38 @@ img.kind {
 .stop .worth,
 .tome .worth {
   visibility: hidden;
+}
+div.summary {
+  position: fixed;
+  bottom: 2em;
+  width: 100%;
+}
+table.players {
+  margin: 2em auto;
+}
+table.players td {
+  padding: 1em 0;
+}
+table.players td.die {
+  width: 3em;
+  text-align: center;
+}
+table.players td.score {
+  width: 1.5em;
+  text-align: right;
+  padding-right: 1em;
+}
+table.players td.pawn {
+  width: 3em;
+}
+table.players td.name {
+  width: 9em;
+  text-align: right;
+}
+table.players td.collected {
+  font-size: .4em;
+}
+table.players td.collected .card {
+  float: left;
+  margin: 0 1em -1em 0;
 }
