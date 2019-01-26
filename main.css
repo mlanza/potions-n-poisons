@@ -1,13 +1,59 @@
 body {
   background-color: #DDD;
-  width: 262em;
 }
-img {
-  height: 5em;
-  float: left;
-  margin: 15em .4em .4em .4em;
-}
-img.pawn {
+img.roll {
   height: 2em;
-  display: none;
+  position: fixed;
+  top: 5px;
+  right: 5px;
+}
+div.trail {
+  white-space: nowrap;
+  font-size: 10px;
+}
+div.card,
+div.start,
+div.stop {
+  display: inline-block;
+  margin: 0;
+  padding: .3em;
+}
+div.card:hover,
+div.start:hover,
+div.stop:hover {
+  background-color: #AAA;
+}
+ol.pawns {
+  list-style: none;
+  padding: 0;
+  height: 15em;
+  margin: 0;
+}
+ol.pawns > li {
+  float: left;
+  text-align: center;
+  width: 100%;
+  clear: both;
+}
+ol.pawns > li img {
+  height: 2em;
+}
+img.kind {
+  height: 5em;
+}
+.worth {
+  margin-top: 5px;
+  width: 100%;
+  font-size: 1.2em;
+  font-weight: bold;
+  text-align: center;
+  font-family: monospace;
+}
+.poison .worth {
+  color: red;
+}
+.start .worth,
+.stop .worth,
+.tome .worth {
+  visibility: hidden;
 }

@@ -4,12 +4,15 @@
 (def roll
   #(inc (rand-int 6)))
 
+(def cards
+  (concat
+    (range -1 -9 -1)
+    (repeat 6 0)
+    (range 1 9)
+    (range -1 -11 -1)))
+
 (def init-trail
-  (vec
-    (concat
-      (range -1 -9 -1)
-      (repeat 6 0)
-      (range -1 -11 -1))))
+  (vec cards))
 
 (def guard -1)
 (def guard? (partial = guard))
@@ -62,15 +65,20 @@
 (defn unconj [xs x]
   (vec (remove-once (partial = x) xs)))
 
+
 (defn start [state]
   (let [player-count (count (get state :players))]
     (-> state
       (assoc :start (vec (mapcat #(repeat (starting-pawns player-count) %) (range player-count))))
       (assoc :trail init-trail)
+      (assoc :ids (vec (map-indexed (fn [idx] idx) init-trail)))
       (assoc :pawns (setup-pawns init-trail))
       (assoc :collected (vec (repeat player-count [])))
       (assoc :up (rand-int player-count))
       (assoc :die (roll)))))
+
+(defn restart [state]
+  (start {:players (get state :players)}))
 
 (defn score [collected]
   (let [pos   (filter pos?  collected)
@@ -112,18 +120,21 @@
     (vec (concat ys (rest zs)))))
 
 (defn collect [state from]
-  (let [player (up state)]
+  (let [player (up state)
+        take   #(drop-at from %)]
     (if (empty? (get-in state [:pawns from]))
       (-> state
         (update-in [:collected player] #(conj % (nth (get state :trail) from)))
-        (update :trail #(drop-at from %))
-        (update :pawns #(drop-at from %)))
+        (update :ids take)
+        (update :trail take)
+        (update :pawns take))
       state)))
 
 (defn trim [state]
   (if (empty? (get state :start))
     (let [n (count (take-while empty? (map #(remove guard? %) (get state :pawns))))]
       (-> state
+        (update :ids #(vec (drop n %)))
         (update :trail #(vec (drop n %)))
         (update :pawns #(vec (drop n %)))))
     state))
@@ -219,21 +230,51 @@
   (apply vector :div
     (map (partial vector :div) (get @game :players))))
 
-(defn src [n]
+(defn card-kind [n]
   (cond
-    (pos? n) "images/potion.svg"
-    (neg? n) "images/poison.svg"
-    (zero? n) "images/tome.svg"))
+    (pos? n) "potion"
+    (neg? n) "poison"
+    (zero? n) "tome"))
 
-(defn card [n]
-  [:img {:src (src n)}])
+(defn render-pawn [n]
+  (let [src (get ["guard", "pawn-red", "pawn-blue"]
+              (inc n))]
+    [:li [:img.pawn {:src (str "images/" (or src n) ".svg")}]]))
 
-(defn render-trail []
-  (apply vector :div.trail
-    [:img {:src "images/start.svg"}]
-    (concat
-      (map (partial vector card) (get @game :trail))
-      [[:img {:src "images/stop.svg"}]])))
+(defn render-pawns [pawns]
+  [:ol.pawns (map render-pawn pawns)])
 
-  (reagent/render [render-trail]
-    (js/document.getElementById "game"))
+(defn render-space [what key worth pawns]
+  [(symbol (str "div" "." what "." (or (card-kind worth) what))) ^{:key key}
+    {:data-key key :data-worth worth}
+    [render-pawns pawns]
+    [:img.kind {:src (str "images/" (or (card-kind worth) what) ".svg")}]
+    [:div.worth (or worth "-")]])
+
+(def started
+  (-> init
+    (join "Larry")
+    (join "Curly")
+    ;(join "Moe")
+    start))
+
+(defn render-die [pips]
+  (when pips [:img.roll {:src (str "images/die" pips ".svg")}]))
+
+(defn render-game []
+  (let [state @game]
+    [:div [render-die (get state :die)]
+    (apply vector :div.trail
+      [render-space "start" "start" nil (get state :start)]
+      (concat
+        (map-indexed
+          (fn [idx]
+            (vector render-space "card"
+              (get-in state [:ids idx])
+              (get-in state [:trail idx])
+              (get-in state [:pawns idx])))
+          (get state :trail))
+        [[render-space "stop" "stop"]]))]))
+
+(reagent/render [render-game]
+  (js/document.getElementById "game"))
