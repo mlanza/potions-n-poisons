@@ -30,7 +30,7 @@
   {:players []})
 
 (defn starting-pawns [player-count]
-  (nth [3 3 2 2] (- player-count 2)))
+  (nth [3 3 3 3 2 2] (- player-count 2)))
 
 (defn join [state name]
   (update state :players #(conj % name)))
@@ -53,7 +53,7 @@
   (contains? state :start))
 
 (defn over? [state]
-  (empty? (in-play state)))
+  (and (started? state) (empty? (in-play state))))
 
 (defn up [state]
   (get state :up))
@@ -219,6 +219,14 @@
     start
     (play choose times)))
 
+(defn leaders [state]
+  (let [best (apply max (sort (scores state)))]
+    (remove nil?
+      (map-indexed
+        (fn [idx score]
+          (when (= best score) idx))
+        (scores state)))))
+
 (defn valid? [state]
   (contains? state :players))
 
@@ -242,21 +250,22 @@
       (fn [n]
         (let [mobile (or (= n up) (and move-guards (guard? n)))]
           [(symbol (str "li" (when mobile ".mobile")))
-          (when mobile {:on-click
-            (fn [e]
-              (println e "move" from n)
-              (swap! game #(move % from n))
-              )})
+          (when mobile
+            {:on-click
+              (fn [e]
+                (swap! game #(move % from n)))})
           [render-pawn n]]))
       pawns)]))
 
-(defn render-card [worth what]
-  [(symbol (str "div.card." (or (card-kind worth) what)))
-    [:img.kind {:src (str "images/" (or (card-kind worth) what) ".svg")}]
-    [:div.worth (or worth "-")]])
+(defn render-card [worth & what]
+  (let [classes (filter some? (cons "card" (cons (card-kind worth) what)))
+        cured   ((set classes) "cured")]
+    [(symbol (str "div." (clojure.string/join "." classes)))
+      [:img.kind {:src (str "images/" (or (card-kind worth) (first what)) ".svg")}]
+      [:div.worth (or (when worth (if cured (* -1 worth) worth)) "-")]]))
 
 (defn render-space [what idx key worth pawns up]
-  [(symbol (str "div.space." what)) ^{:key key}
+  [:div.space ^{:key key}
     {:data-key key :data-worth worth}
     [:div.pawns [render-pawns pawns up idx]]
     [render-card worth what]])
@@ -265,8 +274,17 @@
   (-> init
     (join "Larry")
     (join "Curly")
-    ;(join "Moe")
+    (join "Moe")
     start))
+
+(defn cure-poison
+  ([collected fixes]
+    (let [worst (first (sort (filter neg? collected)))]
+      (if (and worst (pos? fixes))
+        (cure-poison (assoc collected (.indexOf collected worst) (* -1 worst)) (dec fixes))
+        collected)))
+  ([collected]
+    (cure-poison collected (count (filter #(= 0 %) collected)))))
 
 (defn render-die [pips]
   (when pips [:img.roll {:src (str "images/die" pips ".svg")}]))
@@ -275,40 +293,72 @@
   [:table.players>tbody
     (map-indexed
       (fn [idx name]
+        (let [coll  (nth collected idx)
+              cured (cure-poison coll)]
         [:tr
           [:td.name name ]
           [:td.pawn (render-pawn idx)]
           [:td.die (when (= idx up) (render-die die)) ]
           [:td.score (score (get collected idx))]
-          [:td.collected (map render-card (get collected idx)) ]
-          ]) players) ])
+          [:td.collected
+            (map-indexed
+              (fn [idx worth]
+                (let [what (when (not= (nth cured idx) worth) "cured")]
+                  (render-card worth what)))
+              coll) ]
+          ]))
+      players)])
 
-(defn render-player-entry []
+(defn render-player-entry [player-count]
   [:div.entry
-    [:input {:type "text"}]
+    (when (< player-count 6)
+      [:div
+        [:input {:type "text" :placeholder "Enter player name"}]
+        [:button
+          {:on-click
+            (fn [e]
+              (let [parent (.-target.parentNode e)
+                    input  (.querySelector parent "input")
+                    name   (.-value input)]
+                (do
+                  (aset input "value" "")
+                  (swap! game #(join % name))
+                  (.focus input))))}
+            "Join"]])
     [:button
-      {:on-click
-        (fn [e]
-          (let [parent (.-target.parentNode e)
-                input  (.querySelector parent "input")
-                name   (.-value input)]
-            (do
-              (aset input "value" "")
-              (swap! game #(join % name))
-              (.focus input))))}
-        "Join"]
-    [:button
-      {:on-click
+      {:style {:visibility (if (> player-count 1) "visible" "hidden")}
+        :on-click
         (fn [e]
           (swap! game start))}
-        "Start!"]])
+        "Start"]])
+
+(defn render-player-pawn [n players]
+  (let [name (nth players n)]
+    [:div.player
+      (render-pawn n)
+      [:div.name name]]))
 
 (defn render-game []
-  (let [state @game]
+  (let [state     @game
+        players   (get state :players)
+        start     (get state :start)
+        up        (get state :up)
+        die       (get state :die)
+        trail     (get state :trail)
+        collected (get state :collected)]
     [:div
-      (when (not (get state :up)) (render-player-entry))
+      (when (not up) (render-player-entry (count players)))
+      (when (over? state)
+        [:div.winners
+          [:h2 (if (= (count (leaders state)) 1) "Winner" "Winners")]
+          [:ul
+            (map
+              #(vector :li.player
+                (render-pawn %)
+                (vector :div.name (nth players %)))
+              (leaders state))]])
       (apply vector :div.trail
-        [render-space "start" -1 -1 nil (get state :start) (get state :up)]
+        [render-space "start" -1 -1 nil start up]
         (concat
           (map-indexed
             (fn [idx]
@@ -317,11 +367,11 @@
                 (get-in state [:ids idx])
                 (get-in state [:trail idx])
                 (get-in state [:pawns idx])
-                (get state :up)))
-            (get state :trail))
+                up))
+            trail)
           [[render-space "stop" 99 "stop"]]))
       [:div.summary
-        [render-players (get state :players) (get state :up) (get state :die) (get state :collected) ]]
+        [render-players players up die collected]]
       ]))
 
 (reagent/render [render-game]

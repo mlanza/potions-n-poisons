@@ -30,16 +30,42 @@ pieces {
 #game {
   font-family: monospace;
 }
+div.winners {
+  height: 12em;
+  margin-bottom: -12em;
+  text-align: center;
+}
+div.winners ul {
+  list-style: none;
+  padding: 0;
+  display: inline-block;
+}
+div.winners ul li {
+  float: left;
+  margin-right: 1em;
+  display: inline-block;
+}
+div.winners ul li img.pawn {
+  height: 6em;
+}
+div.winners ul li div {
+  text-align: center;
+  width: 100%;
+}
 img.roll {
   height: 2em;
 }
 div.entry {
   text-align: center;
 }
-div.entry > * {
+div.entry input,
+div.entry button {
   font-size: 2em;
   padding: .2em;
   margin: .2em;
+}
+div.entry div {
+  display: inline-block;
 }
 div.trail {
   white-space: nowrap;
@@ -89,6 +115,9 @@ img.kind {
 }
 .poison .worth {
   color: red;
+}
+.poison.cured .worth {
+  color: black;
 }
 .start .worth,
 .stop .worth,
