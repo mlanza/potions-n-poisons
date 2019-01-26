@@ -232,7 +232,7 @@
     (zero? n) "tome"))
 
 (defn render-pawn [n]
-  (let [src (get ["guard", "pawn-red", "pawn-blue"]
+  (let [src (get ["guard" "pawn-red" "pawn-blue" "pawn-yellow" "pawn-green" "pawn-brown" "pawn-black"]
               (inc n))]
     [:img.pawn {:src (str "images/" (or src n) ".svg")}]))
 
@@ -283,26 +283,46 @@
           [:td.collected (map render-card (get collected idx)) ]
           ]) players) ])
 
+(defn render-player-entry []
+  [:div.entry
+    [:input {:type "text"}]
+    [:button
+      {:on-click
+        (fn [e]
+          (let [parent (.-target.parentNode e)
+                input  (.querySelector parent "input")
+                name   (.-value input)]
+            (do
+              (aset input "value" "")
+              (swap! game #(join % name))
+              (.focus input))))}
+        "Join"]
+    [:button
+      {:on-click
+        (fn [e]
+          (swap! game start))}
+        "Start!"]])
+
 (defn render-game []
   (let [state @game]
     [:div
-    (apply vector :div.trail
-      [render-space "start" -1 -1 nil (get state :start) (get state :up)]
-      (concat
-        (map-indexed
-          (fn [idx]
-            (vector render-space "card"
-              idx
-              (get-in state [:ids idx])
-              (get-in state [:trail idx])
-              (get-in state [:pawns idx])
-              (get state :up)))
-          (get state :trail))
-        [[render-space "stop" 99 "stop"]]))
-    [:div.summary
-      [render-players (get state :players) (get state :up) (get state :die) (get state :collected) ]]
-
-    ]))
+      (when (not (get state :up)) (render-player-entry))
+      (apply vector :div.trail
+        [render-space "start" -1 -1 nil (get state :start) (get state :up)]
+        (concat
+          (map-indexed
+            (fn [idx]
+              (vector render-space "card"
+                idx
+                (get-in state [:ids idx])
+                (get-in state [:trail idx])
+                (get-in state [:pawns idx])
+                (get state :up)))
+            (get state :trail))
+          [[render-space "stop" 99 "stop"]]))
+      [:div.summary
+        [render-players (get state :players) (get state :up) (get state :die) (get state :collected) ]]
+      ]))
 
 (reagent/render [render-game]
   (js/document.getElementById "game"))

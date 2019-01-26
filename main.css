@@ -1,11 +1,45 @@
 body {
   background-color: #DDD;
 }
+pieces {
+  color: #6B8F9C;
+  color: #325763;
+  color: #072F3D;
+
+  color: #fff9ae;
+  color: #f8ed62;
+  color: #e9d700;
+
+  color: #605052;
+  color: #2e242c;
+  color: #211a23;
+
+  color: #a4fba6;
+  color: #4ae54a;
+  color: #30cb00;
+
+  color: #ffbaba;
+  color: #ff7b7b;
+  color: #ff5252;
+
+  color: #7c5835;
+  color: #66442c;
+  color: #4c2b21;
+}
+
 #game {
   font-family: monospace;
 }
 img.roll {
   height: 2em;
+}
+div.entry {
+  text-align: center;
+}
+div.entry > * {
+  font-size: 2em;
+  padding: .2em;
+  margin: .2em;
 }
 div.trail {
   white-space: nowrap;
