@@ -257,18 +257,17 @@
           [render-pawn n]]))
       pawns)]))
 
-(defn render-card [worth & what]
-  (let [classes (filter some? (cons "card" (cons (card-kind worth) what)))
-        cured   ((set classes) "cured")]
-    [(symbol (str "div." (clojure.string/join "." classes)))
-      [:img.kind {:src (str "images/" (or (card-kind worth) (first what)) ".svg")}]
+(defn render-card [what worth cured]
+  (let [classes (filter some? [what (card-kind worth) (when cured "cured")])]
+    [(symbol (str "div.card." (clojure.string/join "." classes)))
+      [:img.kind {:src (str "images/" (clojure.string.join "-" classes) ".svg")}]
       [:div.worth (or (when worth (if cured (* -1 worth) worth)) "-")]]))
 
 (defn render-space [what idx key worth pawns up]
   [:div.space ^{:key key}
     {:data-key key :data-worth worth}
     [:div.pawns [render-pawns pawns up idx]]
-    [render-card worth what]])
+    [render-card what worth]])
 
 (def started
   (-> init
@@ -303,8 +302,7 @@
           [:td.collected
             (map-indexed
               (fn [idx worth]
-                (let [what (when (not= (nth cured idx) worth) "cured")]
-                  (render-card worth what)))
+                (render-card nil worth (not= (nth cured idx) worth)))
               coll) ]
           ]))
       players)])
@@ -363,7 +361,7 @@
         (concat
           (map-indexed
             (fn [idx]
-              (vector render-space "card"
+              (vector render-space nil
                 idx
                 (get-in state [:ids idx])
                 (get-in state [:trail idx])
