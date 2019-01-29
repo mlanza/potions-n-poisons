@@ -1,3 +1,3 @@
-# That's Life
+# Potions 'n Poisons
 
-A game by Wolfgang Kramer.  Implemented in ClojureScript for fun.
+Based entirely on That's Life, a game by Wolfgang Kramer.  Implemented in ClojureScript for fun.

@@ -1,4 +1,4 @@
-(ns thats-life.core
+(ns potions-n-poisons.core
   (:require [reagent.core :as reagent]))
 
 (def roll
@@ -347,6 +347,7 @@
         trail     (get state :trail)
         collected (get state :collected)]
     [:div
+      [:h1 "Potions 'n Poisons"]
       (when (not up) (render-player-entry (count players)))
       (when (over? state)
         [:div.winners

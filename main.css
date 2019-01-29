@@ -1,5 +1,19 @@
+@font-face {
+  font-family: "Dokdo";
+  src: url("./Dokdo-Regular.ttf");
+}
 body {
   background-color: #DDD;
+}
+input, h1, button, table .name {
+  font-family: "Dokdo";
+}
+h1 {
+  margin: 0;
+  text-align: center;
+  font-size: 3em;
+  position: fixed;
+  width: 100%;
 }
 pieces {
   color: #6B8F9C;
@@ -57,6 +71,7 @@ img.roll {
 }
 div.entry {
   text-align: center;
+  padding-top: 4em;
 }
 div.entry input,
 div.entry button {
@@ -133,7 +148,7 @@ table.players {
   margin: 2em auto;
 }
 table.players td {
-  padding: 1em 0;
+  padding: .5em 0;
 }
 table.players td.die {
   width: 3em;
@@ -143,6 +158,7 @@ table.players td.score {
   width: 1.5em;
   text-align: right;
   padding-right: 1em;
+  font-size: 2em;
 }
 table.players td.pawn {
   width: 3em;
@@ -150,6 +166,7 @@ table.players td.pawn {
 table.players td.name {
   width: 9em;
   text-align: right;
+  font-size: 2em;
 }
 table.players td.collected {
   font-size: .4em;
