@@ -375,5 +375,8 @@
         [render-players players up die collected]]
       ]))
 
+;warn against leaving a game in progress
+(aset js/window "onbeforeunload" (constantly "Had too much potion to drink?"))
+
 (reagent/render [render-game]
   (js/document.getElementById "game"))
