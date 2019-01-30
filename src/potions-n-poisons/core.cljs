@@ -1,5 +1,4 @@
-(ns potions-n-poisons.core
-  (:require [reagent.core :as reagent]))
+(ns potions-n-poisons.core)
 
 (def roll
   #(inc (rand-int 6)))
@@ -230,44 +229,11 @@
 (defn valid? [state]
   (contains? state :players))
 
-(defonce game
-  (reagent/atom init :validator valid?))
-
 (defn card-kind [n]
   (cond
     (pos? n) "potion"
     (neg? n) "poison"
     (zero? n) "tome"))
-
-(defn render-pawn [n]
-  (let [src (get ["guard" "pawn-red" "pawn-blue" "pawn-yellow" "pawn-green" "pawn-brown" "pawn-black"]
-              (inc n))]
-    [:img.pawn {:src (str "images/" (or src n) ".svg")}]))
-
-(defn render-pawns [pawns up from]
-  (let [move-guards (get (set pawns) up)]
-    [:ol (map
-      (fn [n]
-        (let [mobile (or (= n up) (and move-guards (guard? n)))]
-          [(symbol (str "li" (when mobile ".mobile")))
-          (when mobile
-            {:on-click
-              (fn [e]
-                (swap! game #(move % from n)))})
-          [render-pawn n]]))
-      pawns)]))
-
-(defn render-card [what worth cured]
-  (let [classes (filter some? [what (card-kind worth) (when cured "cured")])]
-    [(symbol (str "div.card." (clojure.string/join "." classes)))
-      [:img.kind {:src (str "images/" (clojure.string.join "-" classes) ".svg")}]
-      [:div.worth (or (when worth (if cured (* -1 worth) worth)) "-")]]))
-
-(defn render-space [what idx key worth pawns up]
-  [:div.space ^{:key key}
-    {:data-key key :data-worth worth}
-    [:div.pawns [render-pawns pawns up idx]]
-    [render-card what worth]])
 
 (def started
   (-> init
@@ -284,97 +250,3 @@
         collected)))
   ([collected]
     (cure-poison collected (count (filter #(= 0 %) collected)))))
-
-(defn render-die [pips]
-  (when pips [:img.roll {:src (str "images/die" pips ".svg")}]))
-
-(defn render-players [players up die collected]
-  [:table.players>tbody
-    (map-indexed
-      (fn [idx name]
-        (let [coll  (nth collected idx)
-              cured (cure-poison coll)]
-        [:tr
-          [:td.name name ]
-          [:td.pawn (render-pawn idx)]
-          [:td.die (when (= idx up) (render-die die)) ]
-          [:td.score (score (get collected idx))]
-          [:td.collected
-            (map-indexed
-              (fn [idx worth]
-                (render-card nil worth (not= (nth cured idx) worth)))
-              coll) ]
-          ]))
-      players)])
-
-(defn render-player-entry [player-count]
-  [:div.entry
-    (when (< player-count 6)
-      [:div
-        [:input {:type "text" :placeholder "Enter player name"}]
-        [:button
-          {:on-click
-            (fn [e]
-              (let [parent (.-target.parentNode e)
-                    input  (.querySelector parent "input")
-                    name   (.-value input)]
-                (do
-                  (aset input "value" "")
-                  (swap! game #(join % name))
-                  (.focus input))))}
-            "Join"]])
-    [:button
-      {:style {:visibility (if (> player-count 1) "visible" "hidden")}
-        :on-click
-        (fn [e]
-          (swap! game start))}
-        "Start"]])
-
-(defn render-player-pawn [n players]
-  (let [name (nth players n)]
-    [:div.player
-      (render-pawn n)
-      [:div.name name]]))
-
-(defn render-game []
-  (let [state     @game
-        players   (get state :players)
-        start     (get state :start)
-        up        (get state :up)
-        die       (get state :die)
-        trail     (get state :trail)
-        collected (get state :collected)]
-    [:div
-      [:h1 "Potions n' Poisons"]
-      (when (not up) (render-player-entry (count players)))
-      (when (over? state)
-        [:div.winners
-          [:h2 (if (= (count (leaders state)) 1) "Winner" "Winners")]
-          [:ul
-            (map
-              #(vector :li.player
-                (render-pawn %)
-                (vector :div.name (nth players %)))
-              (leaders state))]])
-      (apply vector :div.trail
-        [render-space "start" -1 -1 nil start up]
-        (concat
-          (map-indexed
-            (fn [idx]
-              (vector render-space nil
-                idx
-                (get-in state [:ids idx])
-                (get-in state [:trail idx])
-                (get-in state [:pawns idx])
-                up))
-            trail)
-          [[render-space "stop" 99 "stop"]]))
-      [:div.summary
-        [render-players players up die collected]]
-      ]))
-
-;warn against leaving a game in progress
-(aset js/window "onbeforeunload" (constantly "Had too much potion to drink?"))
-
-(reagent/render [render-game]
-  (js/document.getElementById "game"))

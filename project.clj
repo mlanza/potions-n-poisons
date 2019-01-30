@@ -8,6 +8,6 @@
     :builds [{:id "dev"
               :source-paths ["src"]
               :figwheel true
-              :compiler {:main "potions-n-poisons.core"}
+              :compiler {:main "potions-n-poisons.ui"}
              }]
    })
