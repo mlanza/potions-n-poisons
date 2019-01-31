@@ -256,7 +256,7 @@
 ])
 
 (defn active-bot [state]
-  (when (started? state)
+  (when (and (started? state) (not (over? state)))
     (let [{:keys [players up]} state
           name (nth players up)]
       (->> bots
