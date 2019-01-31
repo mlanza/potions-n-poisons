@@ -250,3 +250,20 @@
         collected)))
   ([collected]
     (cure-poison collected (count (filter #(= 0 %) collected)))))
+
+(def bots [ ;each with its own move-selection algorith
+  [(partial re-find (re-pattern "^Robo")) rand-move]
+])
+
+(defn active-bot [state]
+  (when (started? state)
+    (let [{:keys [players up]} state
+          name (nth players up)]
+      (->> bots
+        (filter
+          (fn [[match algorithm]]
+            (match name)))
+        (map
+          (fn [[_ algorithm]]
+            algorithm))
+        first))))

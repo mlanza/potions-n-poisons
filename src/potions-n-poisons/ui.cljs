@@ -126,6 +126,14 @@
         [render-players players up die collected]]
       ]))
 
+(defn sleep [f ms]
+  (js/setTimeout f ms))
+
+(add-watch game :robots
+  (fn [key ref old-state state]
+    (when-let [ai (core/active-bot state)]
+      (sleep #(swap! game ai) 5000))))
+
 ;warn against leaving a game in progress
 (aset js/window "onbeforeunload" (constantly "Had too much potion to drink?"))
 
