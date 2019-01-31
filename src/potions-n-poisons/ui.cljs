@@ -18,11 +18,11 @@
 (defn render-pawn [n]
   [:img.pawn {:src (get pawn-images (inc n))}])
 
-(defn render-pawns [pawns up from]
+(defn render-pawns [pawns up from bot]
   (let [move-guards (get (set pawns) up)]
     [:ol (map
       (fn [n]
-        (let [mobile (or (= n up) (and move-guards (core/guard? n)))]
+        (let [mobile (and (not bot) (or (= n up) (and move-guards (core/guard? n))))]
           [(symbol (str "li" (when mobile ".mobile")))
           (when mobile
             {:on-click
@@ -37,10 +37,10 @@
       [:img.kind {:src (str "images/" (clojure.string.join "-" classes) ".svg")}]
       [:div.worth (or (when worth (if cured (* -1 worth) worth)) "-")]]))
 
-(defn render-space [what idx key worth pawns up]
+(defn render-space [what idx key worth pawns up bot]
   [:div.space ^{:key key}
     {:data-key key :data-worth worth}
-    [:div.pawns [render-pawns pawns up idx]]
+    [:div.pawns [render-pawns pawns up idx bot]]
     [render-card what worth]])
 
 (defn render-die [pips]
@@ -96,6 +96,7 @@
 
 (defn render-game []
   (let [state @game
+        bot   (core/active-bot state)
         {:keys [players start up die trail collected]} state]
     [:div
       [:h1 "Potions n' Poisons"]
@@ -110,7 +111,7 @@
                 (vector :div.name (nth players %)))
               (core/leaders state))]])
       (apply vector :div.trail
-        [render-space "start" -1 -1 nil start up]
+        [render-space "start" -1 -1 nil start up bot]
         (concat
           (map-indexed
             (fn [idx]
@@ -119,9 +120,10 @@
                 (get-in state [:ids idx])
                 (get-in state [:trail idx])
                 (get-in state [:pawns idx])
-                up))
+                up
+                bot))
             trail)
-          [[render-space "stop" 99 "stop"]]))
+          [[render-space "stop" 99 "stop" bot]]))
       [:div.summary
         [render-players players up die collected]]
       ]))
@@ -132,7 +134,7 @@
 (add-watch game :robots
   (fn [key ref old-state state]
     (when-let [ai (core/active-bot state)]
-      (sleep #(swap! game ai) 5000))))
+      (sleep #(swap! game ai) 3000))))
 
 ;warn against leaving a game in progress
 (aset js/window "onbeforeunload" (constantly "Had too much potion to drink?"))
