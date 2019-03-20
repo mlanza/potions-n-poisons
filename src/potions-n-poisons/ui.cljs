@@ -40,7 +40,7 @@
 (defn render-space [what idx key worth pawns up bot]
   [:div.space ^{:key key}
     {:data-key key :data-worth worth}
-    [:div.pawns [render-pawns pawns up idx bot]]
+    [:div.pawns (when (> (count pawns) 8) {:class "crowded"}) [render-pawns pawns up idx bot]]
     [render-card what worth]])
 
 (defn render-die [pips]

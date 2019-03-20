@@ -101,9 +101,14 @@ div.space:hover .pawns .mobile img.pawn {
   opacity: 1;
   cursor: pointer;
 }
+.pawns.crowded ol > li {
+  float: left;
+}
 .pawns {
   position: relative;
   height: 18em;
+  margin: 0 auto;
+  width: 4em;
 }
 .pawns ol {
   position: absolute;
@@ -116,6 +121,10 @@ div.space:hover .pawns .mobile img.pawn {
 }
 .pawns ol > li {
   text-align: center;
+  width: 100%;
+}
+.pawns.crowded ol > li {
+  width: 20px;
 }
 .pawns ol > li img {
   height: 2em;

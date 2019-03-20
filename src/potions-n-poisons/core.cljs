@@ -252,7 +252,7 @@
     (cure-poison collected (count (filter #(= 0 %) collected)))))
 
 (def bots [ ;each with its own move-selection algorith
-  [(partial re-find (re-pattern "^Robo")) rand-move]
+  [(partial re-find (re-pattern "(^Robo.+|.+bot$)")) rand-move]
 ])
 
 (defn active-bot [state]
