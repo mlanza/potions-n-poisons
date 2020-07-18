@@ -16,9 +16,9 @@ Players continue taking turns while they have pawns.  Once all pawns exit, the g
 
 ## Mindless Bots
 
-When adding players, typing a name that starts with "Robo" or which ends in "bot" will yield a mindless bot player.  Bots will make valid moves but are devoid of intelligence.  
+When adding players, typing a name that starts with "Robo" or which ends in "bot" will yield a mindless bot player.  Bots will make valid moves but are devoid of intelligence.  I wasn't devoted enough to develop thoughtful moves, though maybe someday.
 
-I am undecided as to whether I will add some in the future.  This deficit does, however, make the game child friendly.  It also works well enough with just two human beings.  I've played it with my daughter numerous times.
+This deficit makes the game child friendly.
 
 ## License
 
