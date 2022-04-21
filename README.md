@@ -4,7 +4,7 @@ A game that represents the consequences of making good or bad choices in life an
 
 It pays homage to the great [Wolfgang Kramer](https://boardgamegeek.com/boardgamedesigner/7/wolfgang-kramer).
 
-See [the demo](http://doesideas.com/potions-n-poisons/).
+See [the demo](http://doesideas.com/boardgames/potions-n-poisons/).
 
 ## Rules
 
